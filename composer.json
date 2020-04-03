@@ -1,0 +1,40 @@
+{
+    "name": "exatasmente/whatsappgo",
+    "license": "MIT",
+    "description": "Whatsapp go driver for BotMan",
+    "keywords": [
+        "Bot",
+        "BotMan",
+        "Whatsapp go"
+    ],
+    "homepage": "http://github.com/exatasmente/whatsappgo",
+    "authors": [
+        {
+            "name": "Luiz Neto",
+            "email": "luizn@alu.ufc.br"
+        }
+    ],
+    "require": {
+        "php": ">=7.0",
+        "botman/botman": "~2.0"
+    },
+    "require-dev": {
+        "botman/studio-addons": "~1.0",
+        "illuminate/contracts": "~5.5.0",
+        "phpunit/phpunit": "~5.0",
+        "mockery/mockery": "dev-master",
+        "ext-curl": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "BotMan\\Drivers\\Whatsappgo\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "BotMan\\Drivers\\Waboxapp\\Providers\\WhatsappgoServiceProvider"
+            ]
+        }
+    }
+}
