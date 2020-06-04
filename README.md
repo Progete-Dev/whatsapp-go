@@ -1,5 +1,7 @@
 # BotMan WpGO Driver
 
+## Whatsapp web api GO Lang
+[Go Whatsapp Rest](https://github.com/exatasmente/go-whatsapp-rest)
 
 ## License
 
