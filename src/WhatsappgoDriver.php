@@ -13,17 +13,20 @@ use BotMan\BotMan\Messages\Attachments\Video;
 use BotMan\BotMan\Messages\Outgoing\Question;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use BotMan\Drivers\Waboxapp\Exceptions\WaboxappException;
+use BotMan\Drivers\Whatsappgo\Exceptions\WhatsappgoException;
 use BotMan\BotMan\Messages\Attachments\Location;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use BotMan\BotMan\Messages\Incoming\IncomingMessage;
 use BotMan\BotMan\Messages\Outgoing\OutgoingMessage;
-use BotMan\Drivers\Waboxapp\Exceptions\UnsupportedAttachmentException;
+use BotMan\Drivers\Whatsappgo\Exceptions\UnsupportedAttachmentException;
+use Exception;
+use Illuminate\Support\Facades\Storage;
 
-class WaboxappDriver extends HttpDriver
+class WhatsappgoDriver extends HttpDriver
 {
     protected $headers = [];
-
+    protected $client;
+    protected $clientHeaders;
     const DRIVER_NAME = 'Whatsappgo';
 
     const API_BASE_URL = 'http://localhost:3000/';
@@ -34,8 +37,8 @@ class WaboxappDriver extends HttpDriver
      */
     public function buildPayload(Request $request)
     {
-        parse_str($request->getContent(), $output);
-        $this->payload = new ParameterBag($output ?? []);
+
+        $this->payload = json_decode($request->getContent());
         $this->headers = $request->headers->all();
         $this->event = Collection::make($this->payload);
         $this->config = Collection::make($this->config->get('whatsappgo', []));
@@ -49,10 +52,8 @@ class WaboxappDriver extends HttpDriver
     public function matchesRequest()
     {
 
-        $matches = Collection::make(['event', 'token', 'uid', 'contact', 'message'])->diffAssoc($this->event->keys())->isEmpty();
-
-        // catch only incoming messages
-        return $matches && $this->event->get('message')['dir'] == 'i';
+        
+        return ! is_null($this->event->get('Info')) || ! is_null($this->event->get('Context'));
     }
 
     /**
@@ -63,12 +64,32 @@ class WaboxappDriver extends HttpDriver
     public function getMessages()
     {
         $message = (array) $this->event->all();
-
-        $incomingMessage = new IncomingMessage($message['Text'], $message['Info']['RemoteJid'], $message['Info']['Id'], $message);
-
-
-        return [$incomingMessage];
+        
+        switch($message["Info"]->MessageType){
+            case "data/image":
+                $response = new IncomingMessage(Image::PATTERN, $message['Info']->RemoteJid, $message['Info']->RemoteJid, $message);
+                $response->setImages($this->getImages());
+                
+                return [$response];
+            case "text":
+                return [new IncomingMessage($message['Text'], $message['Info']->RemoteJid, $message['Info']->RemoteJid, $message)];
+            case "location":
+                $response =  [new IncomingMessage(Location::PATTERN, $message['Info']->RemoteJid, $message['Info']->RemoteJid, $message)];
+                $response->setLocation(new Location($this->event->get('Latitude'),$this->event->get('Longitude')));
+                return [$response];
+            
+        }
+    
     }
+    private function getImages(){
+        $url = WhatsappgoDriver::API_BASE_URL."file/".$this->event->get('Data');
+        $payload = $this->http->post($url,[],[], [
+            "Authorization: Bearer {$this->getRequestCredentials()}",
+        ],false);
+        
+        return [new Image($url,"data:image/png;base64,".base64_encode($payload->getContent()))];
+    }
+
 
     /**
      * @return bool
@@ -103,7 +124,9 @@ class WaboxappDriver extends HttpDriver
      */
     public function getConversationAnswer(IncomingMessage $message)
     {
-        return Answer::create($message->getText())->setMessage($message);
+        return Answer::create($message->getText())
+            ->setMessage($message)
+            ->setInteractiveReply(true);
     }
 
     /**
@@ -118,10 +141,9 @@ class WaboxappDriver extends HttpDriver
         $buttons = $question->getButtons();
         if ($buttons) {
             $options =  Collection::make($buttons)->transform(function ($button) {
-                return $button['value'] . ' - ' . $button['text'];
+                return "*{$button['value']}* - " .str_replace($button['value'],"*{$button['value']}*",$button['text']);
             })->toArray();
-
-            return $question->getText() . "\nOptions: " . implode(', ', $options);
+            return $question->getText() . "\nOptions: " . implode("\n", $options);
         }
     }
 
@@ -135,7 +157,8 @@ class WaboxappDriver extends HttpDriver
     public function buildServicePayload($message, $matchingMessage, $additionalParameters = [])
     {
         $payload = [
-            'msisdn' => $matchingMessage->getSender()
+            'msisdn' => $matchingMessage->getSender(),
+
         ];
 
         if ($message instanceof OutgoingMessage) {
@@ -143,7 +166,7 @@ class WaboxappDriver extends HttpDriver
         } elseif ($message instanceof Question) {
             $payload['message'] = $this->convertQuestion($message);
         }
-
+        
         return $payload;
     }
 
@@ -157,31 +180,13 @@ class WaboxappDriver extends HttpDriver
      * @return Response
      */
     public function sendPayload($payload)
-    {
-
-        $endpoint = null;
-
-        switch ($payload['type']) {
-            case 'text':
-                $endpoint = '/send/text';
-                break;
-                // case 'picture':
-                //     $endpoint = '/send/image';
-                //     break;
-                // case 'video':
-                //     $endpoint = '/send/media';
-                //     break;
-                // default:
-                throw new \Exception('Payload type not implemented!');
-        }
-
-        return $this->http->post(
-            self::API_BASE_URL . $endpoint,
-            [],
-            $payload,
-            ['Content-Type:application/json', 'Authorization Bearer' . $this->getRequestCredentials()],
-            true
-        );
+    {    
+        $response = $this->http->post(WhatsappgoDriver::API_BASE_URL.'send/text', $payload,[], [
+            "Authorization: Bearer {$this->getRequestCredentials()}",
+            'Content-Type: application/json',
+            'Accept: application/json',
+        ], true);
+        return $payload;
     }
 
     /**

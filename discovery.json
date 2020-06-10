@@ -1,8 +1,8 @@
 {
     "botman/driver-config": [
-        "stubs/waboxapp.php"
+        "stubs/whatsappgo.php"
     ],
     "botman/driver": [
-        "BotMan\\Drivers\\Waboxapp\\WaboxappDriver"
+        "BotMan\\Drivers\\Whatsappgo\\WhatsappgoDriver"
     ]
 }

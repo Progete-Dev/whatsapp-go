@@ -33,7 +33,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "BotMan\\Drivers\\Waboxapp\\Providers\\WhatsappgoServiceProvider"
+                "BotMan\\Drivers\\Whatsappgo\\Providers\\WhatsappgoServiceProvider"
             ]
         }
     }
