@@ -1,5 +1,5 @@
 {
-    "name": "exatasmente/whatsappgo",
+    "name": "exatasmente/whatsapp-go",
     "license": "MIT",
     "description": "Whatsapp go driver for BotMan",
     "keywords": [
@@ -19,9 +19,9 @@
         "botman/botman": "~2.0"
     },
     "require-dev": {
-        "botman/studio-addons": "~1.0",
-        "illuminate/contracts": "~5.5.0",
-        "phpunit/phpunit": "~5.0",
+        "botman/studio-addons": "^1.0",
+        "illuminate/contracts": "^5.5.0",
+        "phpunit/phpunit": "^5.0",
         "mockery/mockery": "dev-master",
         "ext-curl": "*"
     },
@@ -33,7 +33,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "BotMan\\Drivers\\Waboxapp\\Providers\\WhatsappgoServiceProvider"
+                "BotMan\\Drivers\\Whatsappgo\\Providers\\WhatsappgoServiceProvider"
             ]
         }
     }
