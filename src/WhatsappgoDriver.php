@@ -29,7 +29,7 @@ class WhatsappgoDriver extends HttpDriver
     protected $clientHeaders;
     const DRIVER_NAME = 'Whatsappgo';
 
-    const API_BASE_URL = 'http://localhost:3000/';
+    const API_BASE_URL = 'https://whatsapp-go.herokuapp.com/';
 
     /**
      * @param Request $request
